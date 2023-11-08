@@ -11,7 +11,7 @@ from launch_ros.descriptions import ComposableNode
 
 
 def launch_setup(context, *args, **kwargs):
-    log_level = 'info'
+    log_level = 'info' #'debug'
     if(context.environment.get('DEPTHAI_DEBUG')=='1'):
         log_level='debug'
 

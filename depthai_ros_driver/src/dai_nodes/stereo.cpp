@@ -356,8 +356,15 @@ void Stereo::closeQueues() {
     }
 }
 
-void Stereo::link(dai::Node::Input in, int /*linkType*/) {
-    stereoCamNode->depth.link(in);
+void Stereo::link(dai::Node::Input in, int linkType) {
+    if (linkType == static_cast<int>(link_types::StereoLinkType::left)) {
+        stereoCamNode->rectifiedLeft.link(in);
+    } else if (linkType == static_cast<int>(link_types::StereoLinkType::right)) {
+        stereoCamNode->rectifiedRight.link(in);
+    } else {
+        throw std::runtime_error("Wrong link type specified!");
+    }
+    //stereoCamNode->depth.link(in);
 }
 
 dai::Node::Input Stereo::getInput(int linkType) {

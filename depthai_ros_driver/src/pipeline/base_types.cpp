@@ -66,6 +66,11 @@ std::vector<std::unique_ptr<dai_nodes::BaseNode>> RGBD::createPipeline(rclcpp::N
             daiNodes.push_back(std::move(nn));
             break;
         }
+        case NNType::CreStereo: {
+            auto nn = createCreStereoNN(node, pipeline, *stereo);
+            daiNodes.push_back(std::move(nn));
+            break;
+        }
         default:
             break;
     }

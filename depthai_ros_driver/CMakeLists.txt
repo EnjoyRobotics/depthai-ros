@@ -99,6 +99,7 @@ add_library(
   src/dai_nodes/nn/nn_wrapper.cpp
   src/dai_nodes/nn/spatial_nn_wrapper.cpp
   src/dai_nodes/nn/segmentation.cpp
+  src/dai_nodes/nn/stereo_depth.cpp
 )
 ament_target_dependencies(${NN_LIB_NAME} ${NN_DEPS})
 target_link_libraries(
