@@ -63,6 +63,18 @@ void StereoDepth::setXinXout(std::shared_ptr<dai::Pipeline> pipeline)
 void StereoDepth::setupQueues(std::shared_ptr<dai::Device> device)
 {
   nnQ = device->getOutputQueue(nnQName, ph->getParam<int>("i_max_q_size"), false);
+  infoManager = std::make_shared<camera_info_manager::CameraInfoManager>(
+    getROSNode()->create_sub_node(
+      std::string(
+        getROSNode()->get_name()) + "/" + getName()).get(), "/" + getName());
+  infoManager->setCameraInfo(
+    sensor_helpers::getCalibInfo(
+      getROSNode()->get_logger(),
+      *imageConverter,
+      device,
+      dai::CameraBoardSocket::CAM_A,
+      imageManipLeft->initialConfig.getResizeWidth(),
+      imageManipLeft->initialConfig.getResizeHeight()));
   nnPub = image_transport::create_camera_publisher(getROSNode(), "stereo_depth/image_raw");
   nnQ->addCallback(
     std::bind(
@@ -85,26 +97,54 @@ void StereoDepth::stereoDepthCB(
   // Drop half of the data
   std::vector<float> imageData(output.begin(), output.begin() + 160 * 240);
 
-  cv::Mat image = cv::Mat(160, 240, CV_32FC1, imageData.data());
+  cv::Mat disparity = cv::Mat(160, 240, CV_32FC1, imageData.data());
 
-  image = image * 255.0 / 192.0;
+  // convert to depth
+  cv::Mat depth = cv::Mat(160, 240, CV_32FC1);
+  depth = 168.50592041015625 * 0.075 * 1000.0 / disparity;
 
-  // convert to uint8
-  cv::Mat uintImage = cv::Mat(160, 240, CV_8UC1);
-  image.convertTo(uintImage, CV_8UC1);
+  cv::Mat image = cv::Mat(160, 240, CV_16UC1);
+  depth.convertTo(image, CV_16UC1);
+
+  // filter out invalid depth
+  cv::Mat mask = cv::Mat(160, 240, CV_8UC1);
+  cv::inRange(depth, 0, 3000, mask);
+
+  image.setTo(0, mask == 0);
 
   // convert to ros msg
   sensor_msgs::msg::Image img_msg;
 
+  // get camera info from camera info manager
+  nnInfo = sensor_msgs::msg::CameraInfo();
+  nnInfo.header.frame_id = std::string(getROSNode()->get_name()) + "_rgb_camera_optical_frame";
+  nnInfo.height = depth.rows;
+  nnInfo.width = depth.cols;
+  nnInfo.distortion_model = "rational_polynomial";
+  nnInfo.header.stamp = getROSNode()->get_clock()->now();
+
+  nnInfo.d = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  nnInfo.k =
+  {168.50592041015625, 0.0, 122.49176788330078, 0.0, 168.50592041015625, 80.1346435546875,
+    0.0, 0.0, 1.0};
+  nnInfo.r = {1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1};
+  nnInfo.p =
+  {168.50592041015625, 0.0, 122.49176788330078, 0.0, 0.0, 168.50592041015625,
+    80.1346435546875, 0.0, 0.0, 0.0, 1.0, 0.0};
+
   std_msgs::msg::Header header;
-  header.stamp = getROSNode()->get_clock()->now();
+  header.stamp = nnInfo.header.stamp;
   header.frame_id = std::string(getROSNode()->get_name()) + "_rgb_camera_optical_frame";
   nnInfo.header = header;
 
-  cv_bridge::CvImage(header, "mono8", uintImage).toImageMsg(img_msg);
+
+  cv_bridge::CvImage(
+    header, sensor_msgs::image_encodings::TYPE_16UC1,
+    image).toImageMsg(img_msg);
+
+  img_msg.step = img_msg.width * sizeof(uint16_t);
 
 
-  // publish
   nnPub.publish(img_msg, nnInfo);
 
 }
