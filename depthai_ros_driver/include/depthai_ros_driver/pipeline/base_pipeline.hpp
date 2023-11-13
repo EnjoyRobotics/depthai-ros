@@ -23,7 +23,7 @@ class Node;
 
 namespace depthai_ros_driver {
 namespace pipeline_gen {
-enum class NNType { None, RGB, Spatial };
+enum class NNType { None, RGB, Spatial, CreStereo };
 class BasePipeline {
    public:
     ~BasePipeline() = default;
@@ -43,6 +43,15 @@ class BasePipeline {
         return nn;
     }
 
+    std::unique_ptr<dai_nodes::BaseNode> createCreStereoNN(rclcpp::Node* node,
+                                                         std::shared_ptr<dai::Pipeline> pipeline,
+                                                         dai_nodes::BaseNode& daiStereoNode) {
+        auto nn = std::make_unique<dai_nodes::NNWrapper>("nn", node, pipeline);
+        daiStereoNode.link(nn->getInput(static_cast<int>(dai_nodes::link_types::StereoLinkType::left)), static_cast<int>(dai_nodes::link_types::StereoLinkType::left));
+        daiStereoNode.link(nn->getInput(static_cast<int>(dai_nodes::link_types::StereoLinkType::right)), static_cast<int>(dai_nodes::link_types::StereoLinkType::right));
+        return nn;
+    }
+
     virtual std::vector<std::unique_ptr<dai_nodes::BaseNode>> createPipeline(rclcpp::Node* node,
                                                                              std::shared_ptr<dai::Device> device,
                                                                              std::shared_ptr<dai::Pipeline> pipeline,
@@ -55,6 +64,7 @@ class BasePipeline {
         {"NONE", NNType::None},
         {"RGB", NNType::RGB},
         {"SPATIAL", NNType::Spatial},
+        {"CRESTEREO", NNType::CreStereo},
     };
 };
 }  // namespace pipeline_gen

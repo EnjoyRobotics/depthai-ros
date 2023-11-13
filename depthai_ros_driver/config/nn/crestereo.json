@@ -1,0 +1,12 @@
+{
+    "model": {
+        "model_name": "/home/ubuntu/ros2-service-robot/crestereo_init_iter2_160x240_6_shaves.blob",
+        "zoo": "path"
+    },
+    "nn_config": {
+        "NN_family": "crestereo"        
+    },
+    "mappings": {
+        "labels": []
+    }
+}

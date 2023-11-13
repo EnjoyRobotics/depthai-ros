@@ -5,6 +5,7 @@
 #include "depthai/pipeline/node/DetectionNetwork.hpp"
 #include "depthai_ros_driver/dai_nodes/nn/detection.hpp"
 #include "depthai_ros_driver/dai_nodes/nn/segmentation.hpp"
+#include "depthai_ros_driver/dai_nodes/nn/stereo_depth.hpp"
 #include "depthai_ros_driver/param_handlers/nn_param_handler.hpp"
 #include "rclcpp/node.hpp"
 
@@ -25,6 +26,10 @@ NNWrapper::NNWrapper(const std::string& daiNodeName, rclcpp::Node* node, std::sh
         }
         case param_handlers::nn::NNFamily::Segmentation: {
             nnNode = std::make_unique<dai_nodes::nn::Segmentation>(getName(), getROSNode(), pipeline);
+            break;
+        }
+        case param_handlers::nn::NNFamily::CreStereo: {
+            nnNode = std::make_unique<dai_nodes::nn::StereoDepth>(getName(), getROSNode(), pipeline);
             break;
         }
     }

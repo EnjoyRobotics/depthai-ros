@@ -20,6 +20,7 @@ NNParamHandler::NNParamHandler(rclcpp::Node* node, const std::string& name) : Ba
         {"segmentation", nn::NNFamily::Segmentation},
         {"mobilenet", nn::NNFamily::Mobilenet},
         {"YOLO", nn::NNFamily::Yolo},
+        {"crestereo", nn::NNFamily::CreStereo}
     };
 }
 NNParamHandler::~NNParamHandler() = default;
@@ -34,6 +35,8 @@ nn::NNFamily NNParamHandler::getNNFamily() {
         nn_path = config_path + "segmentation.json";
     } else if(nn_path == "depthai_ros_driver/mobilenet") {
         nn_path = config_path + "mobilenet.json";
+    } else if (nn_path == "depthai_ros_driver/crestereo") {
+        nn_path = config_path + "crestereo.json";
     }
     auto final_path = declareAndLogParam<std::string>("i_nn_config_path", nn_path, true);
     using json = nlohmann::json;
@@ -107,6 +110,9 @@ void NNParamHandler::setNNParams(nlohmann::json data, std::shared_ptr<dai::node:
     if(data["nn_config"].contains("NN_specific_metadata")) {
         setYoloParams(data, nn);
     }
+}
+
+void NNParamHandler::setNNParams(nlohmann::json /*data*/, std::shared_ptr<dai::node::CreStereoDepthNetwork> /*nn*/) {
 }
 
 void NNParamHandler::setImageManip(const std::string& model_path, std::shared_ptr<dai::node::ImageManip> imageManip) {

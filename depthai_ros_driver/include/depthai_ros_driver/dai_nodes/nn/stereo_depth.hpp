@@ -1,0 +1,54 @@
+#pragma once
+
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "cv_bridge/cv_bridge.h"
+#include "depthai_ros_driver/dai_nodes/base_node.hpp"
+#include "image_transport/camera_publisher.hpp"
+#include "image_transport/image_transport.hpp"
+#include "sensor_msgs/msg/camera_info.hpp"
+#include "segmentation.hpp"
+
+
+namespace depthai_ros_driver
+{
+namespace dai_nodes
+{
+namespace nn
+{
+class StereoDepth : public BaseNode
+{
+public:
+  StereoDepth(
+    const std::string & daiNodeName, rclcpp::Node * node,
+    std::shared_ptr<dai::Pipeline> pipeline);
+  ~StereoDepth();
+  void updateParams(const std::vector<rclcpp::Parameter> & params) override;
+  void setupQueues(std::shared_ptr<dai::Device> device) override;
+  void link(dai::Node::Input in, int linkType = 0) override;
+  dai::Node::Input getInput(int linkType = 0) override;
+  void setNames() override;
+  void setXinXout(std::shared_ptr<dai::Pipeline> pipeline) override;
+  void closeQueues() override;
+
+private:
+  cv::Mat decodeDeeplab(cv::Mat mat);
+  void stereoDepthCB(const std::string & name, const std::shared_ptr<dai::ADatatype> & data);
+  std::vector<std::string> labelNames;
+  std::unique_ptr<dai::ros::ImageConverter> imageConverter;
+  std::shared_ptr<camera_info_manager::CameraInfoManager> infoManager;
+  image_transport::CameraPublisher nnPub, ptPub;
+  sensor_msgs::msg::CameraInfo nnInfo;
+  std::shared_ptr<dai::node::NeuralNetwork> segNode;
+  std::shared_ptr<dai::node::ImageManip> imageManipLeft, imageManipRight;
+  std::unique_ptr<param_handlers::NNParamHandler> ph;
+  std::shared_ptr<dai::DataOutputQueue> nnQ, ptQ;
+  std::shared_ptr<dai::node::XLinkOut> xoutNN, xoutPT;
+  std::string nnQName;
+};
+
+}  // namespace nn
+}  // namespace dai_nodes
+}  // namespace depthai_ros_driver
